@@ -13,6 +13,9 @@ contract GDATToken is ERC20, Ownable {
     mapping(address => bool) public whitelist;
     address public fundReceiver;
 
+    event TokensPurchased(address indexed buyer, uint256 amount);
+    event FundsWithdrawn(address indexed receiver, uint256 amount);
+
     constructor(address _fundReceiver) ERC20("GDAT Token", "GDAT") {
         _mint(msg.sender, MAX_SUPPLY);
         fundReceiver = _fundReceiver;
@@ -32,12 +35,16 @@ contract GDATToken is ERC20, Ownable {
         require(msg.value > 0, "Send ETH to buy tokens");
 
         uint256 tokensToBuy = msg.value / tokenPrice;
+        require(balanceOf(owner()) >= tokensToBuy, "Not enough tokens available");
         require(totalSupply() + tokensToBuy <= MAX_SUPPLY, "Exceeds max supply");
 
         _transfer(owner(), msg.sender, tokensToBuy);
+        emit TokensPurchased(msg.sender, tokensToBuy);
     }
 
     function withdrawFunds() external onlyOwner {
-        payable(fundReceiver).transfer(address(this).balance);
+        uint256 balance = address(this).balance;
+        payable(fundReceiver).transfer(balance);
+        emit FundsWithdrawn(fundReceiver, balance);
     }
 }
